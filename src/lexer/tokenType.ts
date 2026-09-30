@@ -16,6 +16,9 @@ export enum TokenType {
     KeywordStructureSphere, KeywordStructureCylinder, KeywordStructurePillar, KeywordStructureLine, KeywordStructureStairs, KeywordStructureClear,
     KeywordStructureAir, KeywordStructureRelative, KeywordStructureOrigin, KeywordStructureSize, KeywordStructureRotation, KeywordStructureMirror,
     KeywordStructureRandom, KeywordStructureWeight, KeywordStructureLayer, KeywordStructureRoom, KeywordStructureWall, KeywordStructureFloor, KeywordStructureRoof,
+    KeywordStructureSpawn, KeywordStructureGeneration, KeywordStructureEnable, KeywordStructureDisable, KeywordStructureChance,
+    KeywordStructureInterval, KeywordStructureAttempts, KeywordStructureMinDistance, KeywordStructureMaxDistance, KeywordStructureDimension,
+    KeywordStructureOverworld, KeywordStructureNether, KeywordStructureEnd, KeywordStructureOn, KeywordStructureOff,
 
     KeywordScore, KeywordScoreboard, KeywordObjective, KeywordTeam, KeywordTeams, KeywordAdd, KeywordRemove, KeywordReset, KeywordGetScore,
     KeywordSound, KeywordMusic, KeywordParticle, KeywordAnimation, KeywordCamera, KeywordTitle, KeywordActionbar, KeywordSubtitle, KeywordBossbar, KeywordToast,
