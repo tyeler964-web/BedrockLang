@@ -16,13 +16,14 @@ export type StructureOperation =
   | { kind: "stairs"; block:string; x:number;y:number;z:number;length:number;direction:string }
   | { kind: "clear"; x1:number;y1:number;z1:number;x2:number;y2:number;z2:number };
 
-export interface StructureDef {
-  name:string;
-  operations:StructureOperation[];
+export interface StructureDef { name:string; operations:StructureOperation[]; }
+export interface StructureSpawnDef {
+  structure:string; enabled:boolean; intervalTicks:number; chance:number; attempts:number;
+  minDistance:number; maxDistance:number; dimensions:("overworld"|"nether"|"end")[];
 }
 
 export interface FinalProject {
   name: string; description: string; minEngineVersion: [number,number,number];
   behaviorFiles: SourceFile[]; resourceFiles: SourceFile[]; scripts: string[]; functions: string[];
-  commands: CustomCommandDef[]; schedules: ScheduleDef[]; structures: StructureDef[];
+  commands: CustomCommandDef[]; schedules: ScheduleDef[]; structures: StructureDef[]; structureSpawns: StructureSpawnDef[];
 }
