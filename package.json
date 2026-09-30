@@ -3,18 +3,22 @@
   "version": "1.8.0",
   "description": "BedrockLang %TempSshot@1,8,0% — procedural custom structure generation for Minecraft Bedrock addons.",
   "main": "src/main.ts",
+  "bin": {
+    "BDL": "bin/BDL.cjs"
+  },
   "scripts": {
     "build": "tsc --noEmit",
     "start": "tsx src/main.ts",
     "build:addon": "tsx src/main.ts examples/full.bdl",
     "check": "tsc --noEmit",
-    "version:show": "node -p \"require('./package.json').version\""
+    "version:show": "node -p \"require('./package.json').version\"",
+    "bdl": "tsx src/cli/commands.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tyeler964-web/BedrockLang.git"
   },
-  "keywords": ["minecraft","bedrock","addon","compiler","language","bdl","scripting","structures","procedural-generation"],
+  "keywords": ["minecraft","bedrock","addon","compiler","language","bdl","scripting","structures","procedural-generation","cli"],
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
