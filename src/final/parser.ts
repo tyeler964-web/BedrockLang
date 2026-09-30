@@ -54,4 +54,4 @@ function statement(line:string){
 }
 function indent(a:string[]){return a.map(x=>"    "+x).join("\n");}
 function addFile(p:FinalProject,kind:PackKind,path:string,content:string){const f:SourceFile={pack:kind,path:normalizePath(path,"file"),content};(kind==="behavior"?p.behaviorFiles:p.resourceFiles).push(f);}
-function normalizePath(path:string,alias:string){let p=path.replace(/\\\\/g,"/").replace(/^\\/+/, "");if(!p.includes("/")&&ALIASES[alias])p=ALIASES[alias]+"/"+p;if(alias==="language"){if(!p.endsWith(".lang"))p=p.replace(/\\.[A-Za-z0-9]+$/,"")+".lang";return p;}if(!/\\.[A-Za-z0-9]+$/.test(p))p+=".json";return p;}
+function normalizePath(path:string,alias:string){let p=path.replace(/\\/g,"/").replace(/^\/+/, "");if(!p.includes("/")&&ALIASES[alias])p=ALIASES[alias]+"/"+p;if(alias==="language"){if(!p.endsWith(".lang"))p=p.replace(/\.[A-Za-z0-9]+$/,"")+".lang";return p;}if(!/\.[A-Za-z0-9]+$/.test(p))p+=".json";return p;}
