@@ -1,7 +1,7 @@
 {
   "name": "bedrocklang",
-  "version": "1.7.2",
-  "description": "BedrockLang 1.7.2 — a high-level programming language and compiler for Minecraft Bedrock addon development.",
+  "version": "1.7.9",
+  "description": "BedrockLang 1.7.9 — custom structure generation and Minecraft Bedrock addon development.",
   "main": "src/main.ts",
   "scripts": {
     "build": "tsc --noEmit",
@@ -21,7 +21,9 @@
     "compiler",
     "language",
     "bdl",
-    "scripting"
+    "scripting",
+    "structures",
+    "procedural-generation"
   ],
   "license": "ISC",
   "type": "commonjs",
