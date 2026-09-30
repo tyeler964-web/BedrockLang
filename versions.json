@@ -1,6 +1,59 @@
 {
   "format": 1,
+  "current": {
+    "kind": "TempSshot",
+    "version": "1.8.2",
+    "identifier": "%TempSshot@1,8,2%"
+  },
   "versions": [
+    {
+      "kind": "normal",
+      "version": "0.0.1",
+      "identifier": "%NrSshot@0,0,1%",
+      "status": "known"
+    },
+    {
+      "kind": "normal",
+      "version": "0.0.2",
+      "identifier": "%NrSshot@0,0,2%",
+      "status": "known"
+    },
+    {
+      "kind": "normal",
+      "version": "0.0.3",
+      "identifier": "%NrSshot@0,0,3%",
+      "status": "known"
+    },
+    {
+      "kind": "normal",
+      "version": "0.5.0",
+      "identifier": "%NrSshot@0,5,0%",
+      "status": "known"
+    },
+    {
+      "kind": "normal",
+      "version": "0.5.2",
+      "identifier": "%NrSshot@0,5,2%",
+      "status": "known"
+    },
+    {
+      "kind": "normal",
+      "version": "1.0.0",
+      "identifier": "%NrSshot@1,0,0%",
+      "status": "known"
+    },
+    {
+      "kind": "normal",
+      "version": "1.7.2",
+      "identifier": "%NrSshot@1,7,2%",
+      "status": "known"
+    },
+    {
+      "kind": "normal",
+      "version": "1.7.4",
+      "identifier": "%NrSshot@1,7,4%",
+      "status": "known"
+    },
     {
       "kind": "normal",
       "version": "1.7.9",
@@ -11,8 +64,14 @@
       "kind": "TempSshot",
       "version": "1.8.0",
       "identifier": "%TempSshot@1,8,0%",
-      "status": "development",
+      "status": "known",
       "features": ["procedural custom structure generation"]
+    },
+    {
+      "kind": "TempSshot",
+      "version": "1.8.2",
+      "identifier": "%TempSshot@1,8,2%",
+      "status": "current"
     }
   ]
 }
