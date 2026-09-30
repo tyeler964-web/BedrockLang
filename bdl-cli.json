@@ -1,0 +1,32 @@
+{
+  "prefix": "BDL",
+  "version": {
+    "normal": "%NrSshot@1,7,9%",
+    "temp": "%TempSshot@1,8,2%"
+  },
+  "commands": {
+    "help": { "description": "Show BDL commands", "action": "help" },
+    "list": { "description": "List BDL status information", "action": "list" },
+    "VCR": { "description": "Show the current BDL version", "action": "VCR" },
+    "%cli-%NrSshot@VERSION%": { "description": "Show information for a BDL version", "action": "version" },
+    "run build:addon": { "description": "Build the addon", "action": "npm:build:addon" },
+    "run ts:check": { "description": "Run the TypeScript checker", "action": "npm:check" },
+    "run file": { "description": "Run a TypeScript/JavaScript file", "action": "file" },
+    "-cf": { "description": "Execute/analyze a BDL file or folder", "action": "cf" },
+    "-rm build": { "description": "Remove the build folder", "action": "rm" },
+    "-cat": { "description": "Run BDL's CAT file reader", "action": "cat" },
+    "-qkstart": { "description": "Clean, check, build, CAT-check and report quick-start status", "action": "quickstart" },
+    "ping": { "description": "Measure local BDL runtime ping", "action": "ping" },
+    "binary": { "description": "Analyze a binary file header and printable data", "action": "binary" }
+  },
+  "quickstart": {
+    "cats": [
+      "package.json",
+      "versions.json",
+      "src/lexer/tokenType.ts",
+      "src/lexer/lexer.ts",
+      "src/final/parser.ts",
+      "src/final/generator.ts"
+    ]
+  }
+}
