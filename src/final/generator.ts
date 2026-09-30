@@ -69,7 +69,7 @@ export function generate(project: FinalProject, out = "build"): BuildResult {
 }
 
 function writeFile(root: string, path: string, content: string): void {
-  const full = `${root}/${path.replace(/^\\/+/, "")}`;
+  const full = `${root}/${path.replace(/^\/+/, "")}`;
   mkdirSync(full.slice(0, full.lastIndexOf("/")), { recursive: true });
   writeFileSync(full, content, "utf8");
 }
