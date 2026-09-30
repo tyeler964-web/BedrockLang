@@ -18,13 +18,77 @@ export function generate(project:FinalProject,out="build"):BuildResult{
  writeFile(root,"VERSION-ID.txt",VERSION_ID+"\n");
  writeFile(bp,"VERSION-ID.txt",VERSION_ID+"\n");writeFile(rp,"VERSION-ID.txt",VERSION_ID+"\n");
  for(const f of project.behaviorFiles)writeFile(bp,f.path,f.content); for(const f of project.resourceFiles)writeFile(rp,f.path,f.content);
- const parts=['import { world, system } from "@minecraft/server";',"",generateCommands(project),generateSchedules(project),generateStructureSpawns(project),...project.scripts.filter(x=>!x.startsWith("@@PATH:"))];
+ const parts=['import { world, system } from "@minecraft/server";', project.economy ? 'import "./economy.js";' : "","",generateCommands(project),generateSchedules(project),generateStructureSpawns(project),...project.scripts.filter(x=>!x.startsWith("@@PATH:"))];
  writeFile(bp,"scripts/main.js",parts.filter(Boolean).join("\n\n")+"\n");
  for(const e of project.scripts.filter(x=>x.startsWith("@@PATH:"))){const n=e.indexOf("\n");writeFile(bp,e.slice(7,n),e.slice(n+1));}
  for(const e of project.functions){const n=e.indexOf("\n");writeFile(bp,"functions/"+e.slice(7,n),e.slice(n+1));}
+ if(project.economy)writeFile(bp,"scripts/economy.js",generateEconomy(project.economy));
  for(const s of project.structures)writeFile(bp,"functions/structures/"+safeName(s.name)+".mcfunction",generateStructure(s));
  const mcaddon=resolve(out)+"/"+project.name+".mcaddon";createMcaddon(mcaddon,[[project.name+"_BP.mcpack",bp],[project.name+"_RP.mcpack",rp]]);
  return{root,behaviorPack:bp,resourcePack:rp,mcaddon};
+}
+
+function generateEconomy(e:FinalProject["economy"]):string{
+ if(!e)return"";
+ const esc=(s:string)=>JSON.stringify(s);
+ const money=e.startingMoney,shards=e.startingShards;
+ return [
+  'import { world, system } from "@minecraft/server";',
+  '',
+  'const MONEY="tsuna:money";',
+  'const SHARDS="tsuna:shards";',
+  'const START_MONEY='+String(money)+';',
+  'const START_SHARDS='+String(shards)+';',
+  '',
+  'function num(v, fallback=0){ return typeof v==="number" && Number.isFinite(v) ? v : fallback; }',
+  'function getMoney(p){ return num(p.getDynamicProperty(MONEY), START_MONEY); }',
+  'function getShards(p){ return num(p.getDynamicProperty(SHARDS), START_SHARDS); }',
+  'function setMoney(p,v){ p.setDynamicProperty(MONEY, Math.max(0, Math.floor(v))); }',
+  'function setShards(p,v){ p.setDynamicProperty(SHARDS, Math.max(0, Math.floor(v))); }',
+  'function format(v){ return Math.floor(v).toLocaleString(); }',
+  '',
+  'function updateHud(p){',
+  '  p.onScreenDisplay.setActionBar('+esc(e.scoreboardTitle)+' + "  |  Money: $" + format(getMoney(p)) + "  |  Shards: ✦" + format(getShards(p)));',
+  '}',
+  '',
+  'world.afterEvents.playerSpawn.subscribe(ev=>{',
+  '  if(!ev.initialSpawn)return;',
+  '  const p=ev.player;',
+  '  if(p.getDynamicProperty(MONEY)===undefined)setMoney(p,START_MONEY);',
+  '  if(p.getDynamicProperty(SHARDS)===undefined)setShards(p,START_SHARDS);',
+  '  updateHud(p);',
+  '});',
+  '',
+  'system.runInterval(()=>{ for(const p of world.getAllPlayers()) updateHud(p); },20);',
+  '',
+  'world.afterEvents.playerLeave.subscribe(()=>{});',
+  '',
+  '',
+  'system.beforeEvents.startup.subscribe(init=>{',
+  '  const r=init.customCommandRegistry;',
+  '  r.registerCommand({name:"tsuna:money",description:"View your money",permissionLevel:0,cheatsRequired:false},(origin)=>{',
+  '    const p=origin.sourceEntity; if(!p||p.typeId!=="minecraft:player")return {status:0};',
+  '    p.sendMessage("§aMoney: §f$"+format(getMoney(p))); return {status:0};',
+  '  });',
+  '  r.registerCommand({name:"tsuna:balance",description:"View your money and shards",permissionLevel:0,cheatsRequired:false},(origin)=>{',
+  '    const p=origin.sourceEntity; if(!p||p.typeId!=="minecraft:player")return {status:0};',
+  '    p.sendMessage("§aMoney: §f$"+format(getMoney(p))+" §7| §dShards: §f✦"+format(getShards(p))); return {status:0};',
+  '  });',
+  '  r.registerCommand({name:"tsuna:pay",description:"Pay another player",permissionLevel:0,cheatsRequired:false,mandatoryParameters:[{type:"PlayerSelector",name:"target"},{type:"Integer",name:"amount"}]},(origin,args)=>{',
+  '    const p=origin.sourceEntity; if(!p||p.typeId!=="minecraft:player")return {status:0};',
+  '    const targets=args.target; const amount=Math.floor(Number(args.amount));',
+  '    const target=Array.isArray(targets)?targets[0]:targets;',
+  '    if(!target||target.typeId!=="minecraft:player"){p.sendMessage("§cPlayer not found.");return {status:0};}',
+  '    if(!Number.isFinite(amount)||amount<=0){p.sendMessage("§cAmount must be greater than 0.");return {status:0};}',
+  '    if(getMoney(p)<amount){p.sendMessage("§cYou do not have enough money.");return {status:0};}',
+  '    if(target.id===p.id){p.sendMessage("§cYou cannot pay yourself.");return {status:0};}',
+  '    setMoney(p,getMoney(p)-amount); setMoney(target,getMoney(target)+amount);',
+  '    p.sendMessage("§aPaid §f$"+format(amount)+" §ato §f"+target.name+"§a.");',
+  '    target.sendMessage("§aReceived §f$"+format(amount)+" §afrom §f"+p.name+"§a."); return {status:0};',
+  '  });',
+  '});',
+  ''
+ ].join("\n");
 }
 
 function generateCommands(p:FinalProject){if(!p.commands.length)return"// No custom BedrockLang commands";const lines=["system.beforeEvents.startup.subscribe((init) => {","    const registry = init.customCommandRegistry;"];for(const c of p.commands){const mandatory=c.params.filter(x=>!x.optional).map(x=>"{ type: "+JSON.stringify(x.type)+", name: "+JSON.stringify(x.name)+" }").join(",");const optional=c.params.filter(x=>x.optional).map(x=>"{ type: "+JSON.stringify(x.type)+", name: "+JSON.stringify(x.name)+" }").join(",");let header="    registry.registerCommand({ name: "+JSON.stringify(c.name)+", description: "+JSON.stringify(c.description)+", permissionLevel: "+JSON.stringify({Any:0,GameDirectors:1,Admin:2,Host:3,Owner:4}[c.permission])+", cheatsRequired: "+String(c.cheatsRequired);if(mandatory)header+=", mandatoryParameters: ["+mandatory+"]";if(optional)header+=", optionalParameters: ["+optional+"]";header+=" }, (origin, args) => {";lines.push(header);lines.push('        const player = origin.sourceEntity?.typeId === "minecraft:player" ? origin.sourceEntity : undefined;');for(const b of c.body)lines.push("        "+commandBody(b));lines.push('        return { status: 0 };',"    });");}lines.push("});");return lines.join("\n");}

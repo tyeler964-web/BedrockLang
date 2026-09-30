@@ -1,4 +1,4 @@
-import { FinalProject, SourceFile, PackKind, CustomCommandDef, CommandParam, ScheduleDef, StructureDef, StructureOperation, StructureSpawnDef } from "./types";
+import { FinalProject, SourceFile, PackKind, CustomCommandDef, CommandParam, ScheduleDef, StructureDef, StructureOperation, StructureSpawnDef, EconomyDef } from "./types";
 
 const ALIASES: Record<string,string> = { item:"items", block:"blocks", entity:"entities", recipe:"recipes", loot:"loot_tables", animation:"animations", controller:"animation_controllers", particle:"particles", feature:"features", feature_rule:"feature_rules", spawn_rule:"spawn_rules", trading:"trading", camera:"cameras", dialogue:"dialogue", structure:"structures", texture:"textures", sound:"sounds", ui:"ui", render_controller:"render_controllers", client_entity:"entity", language:"texts" };
 const BEHAVIOR = new Set(["item","block","entity","recipe","loot","animation","controller","particle","feature","feature_rule","spawn_rule","trading"]);
@@ -12,6 +12,7 @@ export function parseSource(source:string): FinalProject {
     if(!line||line.startsWith("//")||line.startsWith("project ")){i++;continue;}
     let m=line.match(/^description\s+"([^"]+)"$/); if(m){p.description=m[1];i++;continue;}
     m=line.match(/^engine\s+"(\d+)\.(\d+)\.(\d+)"$/); if(m){p.minEngineVersion=[+m[1],+m[2],+m[3]];i++;continue;}
+    m=line.match(/^economy\s*\{$/); if(m){const r=readBlock(lines,i);p.economy=parseEconomy(r.body);i=r.next;continue;}
     m=line.match(/^command\s+"([^"]+)"\s*\{$/); if(m){const r=readCommand(lines,i,m[1]);p.commands.push(r.value);i=r.next;continue;}
     m=line.match(/^structure\s+"([^"]+)"\s*\{$/); if(m){const r=readBlock(lines,i);p.structures.push({name:m[1],operations:parseStructureOperations(r.body,m[1])});i=r.next;continue;}
     m=line.match(/^structure_generation\s+"([^"]+)"\s*\{$/); if(m){const r=readBlock(lines,i);p.structureSpawns.push(parseStructureSpawn(r.body,m[1]));i=r.next;continue;}
@@ -27,28 +28,40 @@ export function parseSource(source:string): FinalProject {
   } return p;
 }
 
+function parseEconomy(lines:string[]):EconomyDef{
+  const currencies:{name:string;symbol:string;defaultBalance:number}[]=[];
+  let scoreboard=true,scoreboardTitle="TSUNA SMP",startingMoney=0,startingShards=0;
+  for(const raw of lines){const x=raw.trim();if(!x||x.startsWith("//"))continue;
+    let m=x.match(/^currency\s+(money|shards|[A-Za-z_][A-Za-z0-9_]*)\s+"([^"]+)"\s+default\s+(-?\d+(?:\.\d+)?)$/);
+    if(m){const name=m[1],symbol=m[2],def=Number(m[3]);currencies.push({name,symbol,defaultBalance:def});if(name==="money")startingMoney=def;if(name==="shards")startingShards=def;continue;}
+    m=x.match(/^scoreboard\s+(true|false)$/);if(m){scoreboard=m[1]==="true";continue;}
+    m=x.match(/^scoreboard_title\s+"([^"]+)"$/);if(m){scoreboardTitle=m[1];continue;}
+    m=x.match(/^starting_money\s+(-?\d+(?:\.\d+)?)$/);if(m){startingMoney=Number(m[1]);continue;}
+    m=x.match(/^starting_shards\s+(-?\d+(?:\.\d+)?)$/);if(m){startingShards=Number(m[1]);continue;}
+    throw new Error("BedrockLang: invalid economy option: "+x);
+  }
+  if(!currencies.some(x=>x.name==="money"))currencies.push({name:"money",symbol:"$",defaultBalance:startingMoney});
+  if(!currencies.some(x=>x.name==="shards"))currencies.push({name:"shards",symbol:"✦",defaultBalance:startingShards});
+  return {currencies,scoreboard,scoreboardTitle,startingMoney,startingShards};
+}
+
 function parseStructureSpawn(lines:string[],name:string):StructureSpawnDef{
   let enabled=true,intervalTicks=12000,chance=0.15,attempts=8,minDistance=32,maxDistance=128;const dimensions:("overworld"|"nether"|"end")[]=["overworld"];
   for(const raw of lines){const x=raw.trim();if(!x||x.startsWith("//"))continue;let m=x.match(/^enabled\s+(true|false)$/);if(m){enabled=m[1]==="true";continue;}m=x.match(/^enable$/);if(m){enabled=true;continue;}m=x.match(/^disable$/);if(m){enabled=false;continue;}m=x.match(/^interval\s+(\d+)\s*(ticks|seconds|minutes)?$/);if(m){const v=+m[1],u=m[2]??"ticks";intervalTicks=v*(u==="seconds"?20:u==="minutes"?1200:1);continue;}m=x.match(/^chance\s+(0(?:\.\d+)?|1(?:\.0+)?)$/);if(m){chance=Math.max(0,Math.min(1,+m[1]));continue;}m=x.match(/^attempts\s+(\d+)$/);if(m){attempts=Math.max(1,+m[1]);continue;}m=x.match(/^min_distance\s+(\d+)$/);if(m){minDistance=Math.max(0,+m[1]);continue;}m=x.match(/^max_distance\s+(\d+)$/);if(m){maxDistance=Math.max(minDistance,+m[1]);continue;}m=x.match(/^dimension\s+(overworld|nether|end)$/);if(m){dimensions.length=0;dimensions.push(m[1] as "overworld"|"nether"|"end");continue;}m=x.match(/^dimensions\s+(.+)$/);if(m){dimensions.length=0;for(const d of m[1].split(/[, ]+/))if(["overworld","nether","end"].includes(d))dimensions.push(d as "overworld"|"nether"|"end");continue;}throw new Error(`BedrockLang: invalid structure_generation option for "${name}": ${x}`);}
   return {structure:name,enabled,intervalTicks,chance,attempts,minDistance,maxDistance,dimensions:dimensions.length?dimensions:["overworld"]};
 }
-
-function parseStructureOperations(lines:string[],name:string):StructureOperation[]{
-  const ops:StructureOperation[]=[];
-  for(const raw of lines){const x=raw.trim();if(!x||x.startsWith("//"))continue;let m:string[]|null;
-    m=x.match(/^set\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/);if(m){ops.push({kind:"set",block:m[1],x:+m[2],y:+m[3],z:+m[4]});continue;}
-    m=x.match(/^fill\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)(?:\s+(keep|destroy|hollow|outline|replace))?$/);if(m){ops.push({kind:"fill",block:m[1],x1:+m[2],y1:+m[3],z1:+m[4],x2:+m[5],y2:+m[6],z2:+m[7],mode:m[8]});continue;}
-    m=x.match(/^box\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/);if(m){ops.push({kind:"box",block:m[1],x1:+m[2],y1:+m[3],z1:+m[4],x2:+m[5],y2:+m[6],z2:+m[7]});continue;}
-    m=x.match(/^hollow\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)(?:\s+"([^"]+)")?$/);if(m){ops.push({kind:"hollow",block:m[1],x1:+m[2],y1:+m[3],z1:+m[4],x2:+m[5],y2:+m[6],z2:+m[7],inner:m[8]??"minecraft:air"});continue;}
-    m=x.match(/^sphere\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(\d+)(?:\s+(hollow))?$/);if(m){ops.push({kind:"sphere",block:m[1],x:+m[2],y:+m[3],z:+m[4],radius:+m[5],hollow:!!m[6]});continue;}
-    m=x.match(/^cylinder\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(\d+)\s+(\d+)(?:\s+(hollow))?$/);if(m){ops.push({kind:"cylinder",block:m[1],x:+m[2],y:+m[3],z:+m[4],radius:+m[5],height:+m[6],hollow:!!m[7]});continue;}
-    m=x.match(/^pillar\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/);if(m){ops.push({kind:"pillar",block:m[1],x:+m[2],y1:+m[3],z:+m[4],y2:+m[5]});continue;}
-    m=x.match(/^line\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/);if(m){ops.push({kind:"line",block:m[1],x1:+m[2],y1:+m[3],z1:+m[4],x2:+m[5],y2:+m[6],z2:+m[7]});continue;}
-    m=x.match(/^stairs\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(\d+)\s+(north|south|east|west)$/);if(m){ops.push({kind:"stairs",block:m[1],x:+m[2],y:+m[3],z:+m[4],length:+m[5],direction:m[6]});continue;}
-    m=x.match(/^clear\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/);if(m){ops.push({kind:"clear",x1:+m[1],y1:+m[2],z1:+m[3],x2:+m[4],y2:+m[5],z2:+m[6]});continue;}
-    throw new Error(`BedrockLang: invalid structure operation in "${name}": ${x}`);
-  } return ops;
-}
+function parseStructureOperations(lines:string[],name:string):StructureOperation[]{const ops:StructureOperation[]=[];for(const raw of lines){const x=raw.trim();if(!x||x.startsWith("//"))continue;let m:string[]|null;
+m=x.match(/^set\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/);if(m){ops.push({kind:"set",block:m[1],x:+m[2],y:+m[3],z:+m[4]});continue;}
+m=x.match(/^fill\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)(?:\s+(keep|destroy|hollow|outline|replace))?$/);if(m){ops.push({kind:"fill",block:m[1],x1:+m[2],y1:+m[3],z1:+m[4],x2:+m[5],y2:+m[6],z2:+m[7],mode:m[8]});continue;}
+m=x.match(/^box\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/);if(m){ops.push({kind:"box",block:m[1],x1:+m[2],y1:+m[3],z1:+m[4],x2:+m[5],y2:+m[6],z2:+m[7]});continue;}
+m=x.match(/^hollow\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)(?:\s+"([^"]+)")?$/);if(m){ops.push({kind:"hollow",block:m[1],x1:+m[2],y1:+m[3],z1:+m[4],x2:+m[5],y2:+m[6],z2:+m[7],inner:m[8]??"minecraft:air"});continue;}
+m=x.match(/^sphere\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(\d+)(?:\s+(hollow))?$/);if(m){ops.push({kind:"sphere",block:m[1],x:+m[2],y:+m[3],z:+m[4],radius:+m[5],hollow:!!m[6]});continue;}
+m=x.match(/^cylinder\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(\d+)\s+(\d+)(?:\s+(hollow))?$/);if(m){ops.push({kind:"cylinder",block:m[1],x:+m[2],y:+m[3],z:+m[4],radius:+m[5],height:+m[6],hollow:!!m[7]});continue;}
+m=x.match(/^pillar\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/);if(m){ops.push({kind:"pillar",block:m[1],x:+m[2],y1:+m[3],z:+m[4],y2:+m[5]});continue;}
+m=x.match(/^line\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/);if(m){ops.push({kind:"line",block:m[1],x1:+m[2],y1:+m[3],z1:+m[4],x2:+m[5],y2:+m[6],z2:+m[7]});continue;}
+m=x.match(/^stairs\s+"([^"]+)"\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(\d+)\s+(north|south|east|west)$/);if(m){ops.push({kind:"stairs",block:m[1],x:+m[2],y:+m[3],z:+m[4],length:+m[5],direction:m[6]});continue;}
+m=x.match(/^clear\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)$/);if(m){ops.push({kind:"clear",x1:+m[1],y1:+m[2],z1:+m[3],x2:+m[4],y2:+m[5],z2:+m[6]});continue;}
+throw new Error(`BedrockLang: invalid structure operation in "${name}": ${x}`);}return ops;}
 
 function readCommand(lines:string[],start:number,name:string):{value:CustomCommandDef,next:number}{const r=readBlock(lines,start);let description="BedrockLang command",permission:CustomCommandDef["permission"]="Any",cheatsRequired=false;const params:CommandParam[]=[],body:string[]=[];let executing=false;for(const raw of r.body){const x=raw.trim();if(!x)continue;let m=x.match(/^description\s+"([^"]+)"$/);if(m){description=m[1];continue;}m=x.match(/^permission\s+(Any|GameDirectors|Admin|Host|Owner)$/i);if(m){permission=(m[1][0].toUpperCase()+m[1].slice(1)) as CustomCommandDef["permission"];continue;}m=x.match(/^cheats\s+(true|false)$/);if(m){cheatsRequired=m[1]==="true";continue;}m=x.match(/^param\s+(\w+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(optional|required)?$/);if(m){params.push({type:mapParam(m[1]),name:m[2],optional:m[3]==="optional"});continue;}if(x==="execute {"||x==="execute"){executing=true;continue;}if(x==="}"){executing=false;continue;}if(executing)body.push(x);}return{value:{name,description,permission,cheatsRequired,params,body},next:r.next};}
 function mapParam(t:string){const m:Record<string,string>={boolean:"Boolean",bool:"Boolean",integer:"Integer",int:"Integer",float:"Float",string:"String",location:"Location",position:"Location",player:"PlayerSelector",players:"PlayerSelector",entity:"EntitySelector",entities:"EntitySelector",item:"ItemType",block:"BlockType",enum:"Enum",entitytype:"EntityType"};return m[t.toLowerCase()]||t;}
