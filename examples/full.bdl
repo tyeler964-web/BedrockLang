@@ -1,12 +1,37 @@
 project "EverythingDemo"
+description "BedrockLang 1.7.2 major-release showcase"
+engine "1.21.0"
 
 event player.join {
-    player.message("Welcome to the server!")
-    command "say A player joined."
+    player.message("Welcome to the BedrockLang 1.7.2 demo!")
+    broadcast("A player joined.")
 }
 
 event player.leave {
-    player.message("A player left.")
+    broadcast("A player left.")
+}
+
+command "bedrocklang:hello" {
+    description "Sends a greeting"
+    permission Any
+    cheats false
+    execute {
+        message "Hello from a BedrockLang custom command!"
+    }
+}
+
+command "bedrocklang:announce" {
+    description "Broadcast an announcement"
+    permission GameDirectors
+    cheats false
+    param string message required
+    execute {
+        broadcast "Announcement command executed."
+    }
+}
+
+every 5 seconds {
+    log "BedrockLang scheduled task is running."
 }
 
 item "demo_item" """
