@@ -1,33 +1,13 @@
 {
-  "name": "bedrocklang",
-  "version": "1.0.0",
-  "description": "A programming language and development toolchain designed to simplify Minecraft Bedrock development.",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/tyeler964-web/BedrockLang.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/tyeler964-web/BedrockLang/issues"
-  },
-  "homepage": "https://github.com/tyeler964-web/BedrockLang#readme",
-  "devDependencies": {
-    "@types/node": "^26.6.3",
-    "@types/uuid": "^10.0.0",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
-  },
-  "allowScripts": {
-    "tsx@4.23.15": true
-  },
-  "dependencies": {
-    "uuid": "^14.0.2"
-  }
+  "name":"bedrocklang",
+  "version":"1.0.0",
+  "description":"A programming language and development toolchain designed to simplify Minecraft Bedrock development.",
+  "main":"src/main.ts",
+  "scripts":{"build":"tsc --noEmit","start":"tsx src/main.ts","build:addon":"tsx src/main.ts examples/full.bdl","check":"tsc --noEmit"},
+  "repository":{"type":"git","url":"git+https://github.com/tyeler964-web/BedrockLang.git"},
+  "keywords":["minecraft","bedrock","addon","compiler","language"],
+  "license":"ISC",
+  "type":"commonjs",
+  "devDependencies":{"@types/node":"^26.6.3","@types/uuid":"^10.0.0","tsx":"^4.23.15","typescript":"^7.0.2"},
+  "dependencies":{"uuid":"^14.0.2"}
 }
