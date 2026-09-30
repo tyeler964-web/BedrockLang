@@ -28,5 +28,13 @@ export enum TokenType {
     KeywordTry, KeywordCatch, KeywordThrow, KeywordAssert, KeywordImport, KeywordExport, KeywordInclude, KeywordUsing, KeywordFrom, KeywordAs,
     KeywordPermission, KeywordCheats, KeywordDescription, KeywordOptional, KeywordRequired, KeywordEnum, KeywordString, KeywordInteger, KeywordFloat, KeywordBoolean, KeywordLocationType, KeywordPositionType, KeywordPlayerType, KeywordEntityType, KeywordItemType, KeywordBlockType,
 
+    // BDL CLI / toolchain tokens.
+    KeywordBDL, KeywordHelp, KeywordList, KeywordVCR, KeywordCliVersion, KeywordRunCommand, KeywordCat, KeywordQuickStart,
+    KeywordRemove, KeywordExecuteFile, KeywordExecuteFolder, KeywordPing, KeywordBinary, KeywordAnalyze, KeywordGenerate, KeywordWrite,
+    KeywordCache, KeywordNode, KeywordPercentage, KeywordValue, KeywordVersionNode, KeywordPingNode, KeywordPercentageNode, KeywordTimeNode,
+    KeywordSuccess, KeywordFailure, KeywordStatus, KeywordLoaded, KeywordFailed, KeywordCheck, KeywordBuild, KeywordSafety,
+    KeywordTokens, KeywordDeclarations, KeywordData, KeywordTerminal, KeywordConfig, KeywordAnalyzer, KeywordWriter, KeywordGenerator,
+    KeywordBinaryAnalyzer, KeywordPingAnalyzer, KeywordFileAnalyzer, KeywordFolderAnalyzer, KeywordJsonAnalyzer, KeywordZipAnalyzer,
+
     EOF
 }
