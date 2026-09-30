@@ -24,11 +24,11 @@ function generateCommands(p:FinalProject){
  for(const c of p.commands){
    const mandatory=c.params.filter(x=>!x.optional).map(x=>"{ type: "+JSON.stringify(x.type)+", name: "+JSON.stringify(x.name)+" }").join(",");
    const optional=c.params.filter(x=>x.optional).map(x=>"{ type: "+JSON.stringify(x.type)+", name: "+JSON.stringify(x.name)+" }").join(",");
-   let header="    registry.registerCommand({ name: "+JSON.stringify(c.name)+", description: "+JSON.stringify(c.description)+", permissionLevel: "+JSON.stringify(c.permission)+", cheatsRequired: "+String(c.cheatsRequired);
+   let header="    registry.registerCommand({ name: "+JSON.stringify(c.name)+", description: "+JSON.stringify(c.description)+", permissionLevel: "+JSON.stringify({Any:0,GameDirectors:1,Admin:2,Host:3,Owner:4}[c.permission])+", cheatsRequired: "+String(c.cheatsRequired);
    if(mandatory)header+=", mandatoryParameters: ["+mandatory+"]"; if(optional)header+=", optionalParameters: ["+optional+"]"; header+=" }, (origin, args) => {"; lines.push(header);
    lines.push('        const player = origin.sourceEntity?.typeId === "minecraft:player" ? origin.sourceEntity : undefined;');
    for(const b of c.body)lines.push("        "+commandBody(b));
-   lines.push('        return { status: "success" };',"    });");
+   lines.push('        return { status: 0 };',"    });");
  } lines.push("});"); return lines.join("\n");
 }
 function commandBody(x:string){let m=x.match(/^message\\s+"([^"]*)"$/);if(m)return"player?.sendMessage("+JSON.stringify(m[1])+");";m=x.match(/^broadcast(?:\\s*\\()\\s*"([^"]*)"\\)?$/);if(m)return"world.sendMessage("+JSON.stringify(m[1])+");";m=x.match(/^run\\s+"([^"]*)"$/);if(m)return"system.run(()=>player?.runCommand("+JSON.stringify(m[1])+"));";m=x.match(/^log\\s+"([^"]*)"$/);if(m)return"console.log("+JSON.stringify(m[1])+");";return"// Unsupported command body: "+x.replace(/\\*/g,"");}
