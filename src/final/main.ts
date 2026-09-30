@@ -6,7 +6,7 @@ const source = readFileSync(input, "utf8");
 
 try {
   const result = compile(source);
-  console.log("=== BedrockLang 1.0 ===");
+  console.log("=== BedrockLang 1.7.9 ===");
   console.log(`Input: ${input}`);
   console.log("Compilation successful.");
   console.log(`Behavior Pack: ${result.behaviorPack}`);
