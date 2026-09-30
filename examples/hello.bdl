@@ -1,0 +1,10 @@
+project "HelloBedrock"
+
+event player.join {
+    player.message("Welcome to BedrockLang!")
+    command "say A player joined the server!"
+}
+
+event player.leave {
+    command "say A player left the server!"
+}

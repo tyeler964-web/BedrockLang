@@ -1,0 +1,5 @@
+project "InvalidTest"
+
+event player.join {
+    player.message("")
+}

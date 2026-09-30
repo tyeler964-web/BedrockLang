@@ -1,0 +1,7 @@
+project "First"
+
+project "Second"
+
+event player.join {
+    player.message("Hello")
+}

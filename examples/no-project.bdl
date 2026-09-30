@@ -1,0 +1,3 @@
+event player.join {
+    player.message("Hello")
+}
