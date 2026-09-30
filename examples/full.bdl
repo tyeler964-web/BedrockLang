@@ -1,9 +1,9 @@
 project "EverythingDemo"
-description "BedrockLang 1.7.2 major-release showcase"
+description "BedrockLang 1.7.9 structure generator showcase"
 engine "1.21.0"
 
 event player.join {
-    player.message("Welcome to the BedrockLang 1.7.2 demo!")
+    player.message("Welcome to the BedrockLang 1.7.9 demo!")
     broadcast("A player joined.")
 }
 
@@ -32,6 +32,29 @@ command "bedrocklang:announce" {
 
 every 5 seconds {
     log "BedrockLang scheduled task is running."
+}
+
+structure "demo_tower" {
+    fill "minecraft:stone_bricks" 0 0 0 8 0 8
+    box "minecraft:stone_bricks" 0 1 0 8 8 8
+    hollow "minecraft:stone" 1 1 1 7 7 7 "minecraft:air"
+    pillar "minecraft:oak_log" 1 1 1 7
+    pillar "minecraft:oak_log" 7 1 1 7
+    pillar "minecraft:oak_log" 1 1 7 7
+    pillar "minecraft:oak_log" 7 1 7 7
+    fill "minecraft:glass" 2 4 0 6 5 0
+    fill "minecraft:glass" 2 4 8 6 5 8
+    stairs "minecraft:stone_stairs" 3 1 3 5 north
+    sphere "minecraft:glowstone" 4 10 4 2
+}
+
+structure "demo_bridge" {
+    fill "minecraft:stone" 0 0 0 12 0 2
+    box "minecraft:stone_bricks" 0 1 0 12 3 2
+    clear 1 2 1 11 2 1
+    pillar "minecraft:oak_log" 0 0 0 4
+    pillar "minecraft:oak_log" 12 0 0 4
+    line "minecraft:lantern" 2 4 1 10 4 1
 }
 
 item "demo_item" """
