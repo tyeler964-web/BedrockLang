@@ -1,7 +1,16 @@
 import { readFileSync } from "fs";
+import { resolve } from "path";
 import { compile } from "./compiler";
 
-const VERSION_ID="%TempSshot@1,8,0%";
+const ROOT = resolve(__dirname, "../..");
+const VERSION_FILE = resolve(ROOT, "versions.json");
+
+function getVersionId(): string {
+  const registry = JSON.parse(readFileSync(VERSION_FILE, "utf8"));
+  return registry.current.identifier;
+}
+
+const VERSION_ID = getVersionId();
 const input = process.argv[2] ?? "examples/hello.bdl";
 const source = readFileSync(input, "utf8");
 
