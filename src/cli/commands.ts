@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "fs";
 import { execFileSync, spawnSync } from "child_process";
-import { resolve, basename } from "path";
+import { resolve } from "path";
 
 type Config = {
   prefix: string;
@@ -13,8 +13,12 @@ const ROOT = resolve(__dirname, "../..");
 const CONFIG = resolve(ROOT, "bdl-cli.json");
 const config: Config = JSON.parse(readFileSync(CONFIG, "utf8"));
 
+function registry() {
+  return JSON.parse(readFileSync(resolve(ROOT, "versions.json"), "utf8"));
+}
+
 function versionId(): string {
-  return config.version.temp || config.version.normal;
+  return registry().current.identifier;
 }
 
 function run(command: string, args: string[] = []) {
@@ -41,7 +45,7 @@ function list() {
 }
 
 function showVersion(value?: string) {
-  const versions = JSON.parse(readFileSync(resolve(ROOT, "versions.json"), "utf8"));
+  const versions = registry();
   if (!value) {
     console.log(`Current BDL version: ${versionId()}`);
     return;
@@ -102,38 +106,104 @@ function ping() {
 }
 
 function quickstart() {
-  const start = Date.now();
+  const started = Date.now();
   const cats = config.quickstart.cats;
-  let value = 0;
+  const total = 3 + cats.length + 2;
+  let completed = 0;
+
   console.log("\n=== Quick Start ===");
   console.log("Starting quick start!");
-  const node = (label: string) => console.log(label);
-  try {
-    node("PERCENTAGE 5%");
-    if (existsSync(resolve(ROOT, "build"))) { rmSync(resolve(ROOT, "build"), { recursive: true, force: true }); value++; }
-    node("PERCENTAGE 15%");
-    run(process.platform === "win32" ? "npx.cmd" : "npx", ["tsc", "--noEmit"]);
-    value++;
-    node("PERCENTAGE 35% — data was analyzed, successfully cache the available " + value + " data nodes");
-    for (const item of cats) {
-      console.log(`running cache for ${item}`);
-      const file = resolve(ROOT, item);
-      if (existsSync(file)) { value++; console.log(`CAT OK: ${item}`); }
-      else { console.log(`CAT FAILED: ${item}`); }
+
+  const progress = (label: string) => {
+    completed++;
+    const percentage = Math.round((completed / total) * 100);
+    console.log(`[${completed}/${total}] ${label} — ${percentage}%`);
+  };
+
+  const check = (label: string, action: () => void) => {
+    try {
+      action();
+      progress(label);
+      return true;
+    } catch (error) {
+      console.error(`NODE FAILED: ${label}`);
+      console.error(error instanceof Error ? error.message : error);
+      return false;
     }
-    node("PERCENTAGE 65%");
-    run(process.platform === "win32" ? "npx.cmd" : "npx", ["tsx", "src/main.ts", "examples/full.bdl"]);
-    value++;
-    node("PERCENTAGE 90%");
-    ping();
-    node("PERCENTAGE2 100% loaded");
-    const seconds = ((Date.now() - start) / 1000).toFixed(2);
+  };
+
+  try {
+    check("Removing build", () => {
+      rmSync(resolve(ROOT, "build"), { recursive: true, force: true });
+    });
+
+    if (!check("TypeScript check", () => {
+      const result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "ts:check"], {
+        cwd: ROOT,
+        stdio: "inherit",
+        shell: false
+      });
+      if (result.status !== 0) throw new Error(`TypeScript check exited with code ${result.status ?? "unknown"}`);
+    })) {
+      process.exitCode = 1;
+      return;
+    }
+
+    for (const item of cats) {
+      if (!check(`CAT ${item}`, () => {
+        const file = resolve(ROOT, item);
+        if (!existsSync(file) || !statSync(file).isFile()) throw new Error(`CAT file not found: ${item}`);
+        const content = readFileSync(file, "utf8");
+        const lines = content.split(/\r?\n/);
+        console.log(`CAT OK: ${item} (${lines.length} lines)`);
+      })) {
+        process.exitCode = 1;
+        return;
+      }
+    }
+
+    if (!check("Build addon", () => {
+      const result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build:addon"], {
+        cwd: ROOT,
+        stdio: "inherit",
+        shell: false
+      });
+      if (result.status !== 0) throw new Error(`Addon build exited with code ${result.status ?? "unknown"}`);
+    })) {
+      process.exitCode = 1;
+      return;
+    }
+
+    if (!check("Binary analysis", () => {
+      const addon = resolve(ROOT, "build/EverythingDemo.mcaddon");
+      if (!existsSync(addon)) throw new Error("Expected MCAddon was not generated");
+      const data = readFileSync(addon);
+      console.log(`Binary bytes: ${data.length}`);
+      console.log(`Binary header: ${[...data.subarray(0, 4)].map(b => b.toString(16).padStart(2, "0")).join(" ")}`);
+      if (data.length === 0) throw new Error("Generated MCAddon is empty");
+    })) {
+      process.exitCode = 1;
+      return;
+    }
+
+    const pingStarted = process.hrtime.bigint();
+    spawnSync(process.execPath, ["-e", "process.stdout.write('pong')"], {
+      cwd: ROOT,
+      stdio: ["ignore", "pipe", "ignore"],
+      shell: false
+    });
+    const ms = Number(process.hrtime.bigint() - pingStarted) / 1e6;
+    progress(`Ping analyzer — ${ms.toFixed(2)} ms`);
+
+    const seconds = ((Date.now() - started) / 1000).toFixed(2);
     console.log(`=== ${versionId()} ===`);
     console.log(`Successfully loaded quickstart for ${versionId()}`);
     console.log(`PERCENTAGE2 100% loaded, for ${seconds}s`);
+    console.log(`TIME: ${seconds}s`);
+    console.log("NODE: SUCCESS");
     console.log("===== COMPLETED =====");
   } catch (error) {
-    const seconds = ((Date.now() - start) / 1000).toFixed(2);
+    const seconds = ((Date.now() - started) / 1000).toFixed(2);
     console.error(`PERCENTAGE2 — failed after ${seconds}s`);
     console.error("NODE: FAILED");
     console.error(error instanceof Error ? error.message : error);
@@ -148,7 +218,10 @@ function main() {
   if (command === "list") return list();
   if (command === "VCR") return showVersion();
   if (command.startsWith("%cli-%")) return showVersion(command.slice(6));
-  if (command === "run") return run("npm", [args.shift() ?? "check"]);
+  if (command === "run") {
+    const script = args.shift() ?? "check";
+    return run(process.platform === "win32" ? "npm.cmd" : "npm", ["run", script, ...args]);
+  }
   if (command === "-rm") { const target = resolve(ROOT, args[0] ?? "build"); rmSync(target, { recursive: true, force: true }); return console.log(`Removed ${args[0] ?? "build"}`); }
   if (command === "-cat") return cat(args);
   if (command === "-cf") return executeFileOrFolder(args[0] ?? "");
