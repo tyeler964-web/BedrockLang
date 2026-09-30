@@ -175,7 +175,7 @@ function quickstart() {
     }
 
     if (!check("Binary analysis", () => {
-      const addon = resolve(ROOT, "build/EverythingDemo.mcaddon");
+      const addon = resolve(ROOT, "build/TsunaEconomy.mcaddon");
       if (!existsSync(addon)) throw new Error("Expected MCAddon was not generated");
       const data = readFileSync(addon);
       console.log(`Binary bytes: ${data.length}`);
