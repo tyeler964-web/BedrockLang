@@ -16,7 +16,7 @@ export function parseSource(source:string): FinalProject {
     m=line.match(/^every\\s+(\\d+)\\s+(ticks|seconds|minutes)\\s*\\{$/); if(m){const r=readBlock(lines,i);p.schedules.push({every:+m[1],unit:m[2] as ScheduleDef["unit"],body:r.body});i=r.next;continue;}
     m=line.match(/^event\\s+player\\.(join|leave|spawn)\\s*\\{$/); if(m){const r=readBlock(lines,i);p.scripts.push(eventScript(m[1],r.body));i=r.next;continue;}
     m=line.match(/^on\\s+([A-Za-z0-9_.:-]+)\\s*\\{$/); if(m){const r=readBlock(lines,i);p.scripts.push(genericEventScript(m[1],r.body));i=r.next;continue;}
-    m=line.match(/^function\\s+"([^"]+)"\\s+"""?/); if(m&&line.includes('"""')){const r=readTriple(lines,i);p.functions.push("@@PATH:"+m[1].replace(/^\\/+/, "").replace(/\\.mcfunction$/,"")+".mcfunction\\n"+trimTriple(r.content));i=r.next;continue;}
+    m=line.match(/^function\s+"([^"]+)"\s+"""?/); if(m&&line.includes('"""')){const r=readTriple(lines,i);p.functions.push("@@PATH:"+m[1].replace(/^\/+/, "").replace(/\.mcfunction$/,"")+".mcfunction\n"+trimTriple(r.content));i=r.next;continue;}
     if(line.startsWith("script ")&&line.includes('"""')){const r=readTriple(lines,i);p.scripts.push(trimTriple(r.content));i=r.next;continue;}
     m=line.match(/^file\\s+(behavior|resource)\\s+"([^"]+)"\\s+"""/); if(m){const r=readTriple(lines,i);addFile(p,m[1] as PackKind,m[2],r.content);i=r.next;continue;}
     m=line.match(/^(item|block|entity|recipe|loot|animation|controller|particle|feature|feature_rule|spawn_rule|trading|camera|dialogue|structure|texture|sound|ui|render_controller|client_entity|language)\\s+"([^"]+)"\\s+"""/);
