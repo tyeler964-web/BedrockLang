@@ -1,0 +1,1 @@
+{"name":"BedrockLang","image":"mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm","postCreateCommand":"npm install && npx tsc --noEmit","customizations":{"vscode":{"extensions":["dbaeumer.vscode-eslint","esbenp.prettier-vscode"]}},"remoteUser":"node"}
