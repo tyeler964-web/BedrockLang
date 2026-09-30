@@ -63,7 +63,6 @@ function generateEconomy(e:FinalProject["economy"]):string{
   '',
   'world.afterEvents.playerLeave.subscribe(()=>{});',
   '',
-  'world.afterEvents.worldLoad?.subscribe?.(()=>{});',
   '',
   'system.beforeEvents.startup.subscribe(init=>{',
   '  const r=init.customCommandRegistry;',
