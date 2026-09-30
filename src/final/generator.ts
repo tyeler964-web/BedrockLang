@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync, rmSync } from "fs";
+import { resolve } from "path";
 import { randomUUID } from "crypto";
 import { FinalProject } from "./types";
 
@@ -68,7 +69,7 @@ export function generate(project: FinalProject, out = "build"): BuildResult {
 }
 
 function writeFile(root: string, path: string, content: string): void {
-  const full = `${root}/${path.replace(/^\/+/, "")}`;
+  const full = `${root}/${path.replace(/^\\/+/, "")}`;
   mkdirSync(full.slice(0, full.lastIndexOf("/")), { recursive: true });
   writeFileSync(full, content, "utf8");
 }
@@ -79,14 +80,18 @@ function writeJson(path: string, value: unknown): void {
 
 function createMcaddon(path: string, packs: [string, string][]): void {
   const { execFileSync } = require("child_process");
-  const tmp = path + ".tmp";
+  const tmp = resolve(path + ".tmp");
+  const output = resolve(path);
+
   rmSync(tmp, { recursive: true, force: true });
   mkdirSync(tmp, { recursive: true });
+
   for (const [name, folder] of packs) {
     const parent = tmp + "/" + name.replace(/\.mcpack$/, "");
     mkdirSync(parent, { recursive: true });
-    execFileSync("cp", ["-R", folder + "/.", parent]);
+    execFileSync("cp", ["-R", resolve(folder) + "/.", parent]);
   }
-  execFileSync("zip", ["-qr", path, "."], { cwd: tmp });
+
+  execFileSync("zip", ["-qr", output, "."], { cwd: tmp });
   rmSync(tmp, { recursive: true, force: true });
 }
