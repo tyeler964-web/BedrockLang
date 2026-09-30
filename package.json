@@ -1,7 +1,7 @@
 {
   "name": "bedrocklang",
-  "version": "1.7.9",
-  "description": "BedrockLang 1.7.9 — custom structure generation and Minecraft Bedrock addon development.",
+  "version": "1.8.0",
+  "description": "BedrockLang %TempSshot@1,8,0% — procedural custom structure generation for Minecraft Bedrock addons.",
   "main": "src/main.ts",
   "scripts": {
     "build": "tsc --noEmit",
@@ -14,17 +14,7 @@
     "type": "git",
     "url": "git+https://github.com/tyeler964-web/BedrockLang.git"
   },
-  "keywords": [
-    "minecraft",
-    "bedrock",
-    "addon",
-    "compiler",
-    "language",
-    "bdl",
-    "scripting",
-    "structures",
-    "procedural-generation"
-  ],
+  "keywords": ["minecraft","bedrock","addon","compiler","language","bdl","scripting","structures","procedural-generation"],
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
@@ -33,7 +23,5 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
-  "dependencies": {
-    "uuid": "^14.0.2"
-  }
+  "dependencies": { "uuid": "^14.0.2" }
 }
