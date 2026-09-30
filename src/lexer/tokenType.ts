@@ -11,6 +11,12 @@ export enum TokenType {
     KeywordEntity, KeywordEntities, KeywordPlayerSelector, KeywordNearest, KeywordRandom, KeywordSelf, KeywordAll, KeywordTag, KeywordAddTag, KeywordRemoveTag, KeywordKill, KeywordDamage, KeywordHeal, KeywordEffect, KeywordClearEffect, KeywordSummon,
     KeywordItem, KeywordItems, KeywordGive, KeywordTake, KeywordClear, KeywordReplace, KeywordEnchant, KeywordDurability, KeywordComponents, KeywordLore, KeywordName,
     KeywordBlock, KeywordBlocks, KeywordSetBlock, KeywordFill, KeywordClone, KeywordStructure,
+
+    KeywordStructureGenerate, KeywordStructurePlace, KeywordStructureSet, KeywordStructureFill, KeywordStructureBox, KeywordStructureHollow,
+    KeywordStructureSphere, KeywordStructureCylinder, KeywordStructurePillar, KeywordStructureLine, KeywordStructureStairs, KeywordStructureClear,
+    KeywordStructureAir, KeywordStructureRelative, KeywordStructureOrigin, KeywordStructureSize, KeywordStructureRotation, KeywordStructureMirror,
+    KeywordStructureRandom, KeywordStructureWeight, KeywordStructureLayer, KeywordStructureRoom, KeywordStructureWall, KeywordStructureFloor, KeywordStructureRoof,
+
     KeywordScore, KeywordScoreboard, KeywordObjective, KeywordTeam, KeywordTeams, KeywordAdd, KeywordRemove, KeywordReset, KeywordGetScore,
     KeywordSound, KeywordMusic, KeywordParticle, KeywordAnimation, KeywordCamera, KeywordTitle, KeywordActionbar, KeywordSubtitle, KeywordBossbar, KeywordToast,
     KeywordUi, KeywordForm, KeywordButton, KeywordLabel, KeywordInput, KeywordDropdown, KeywordSlider, KeywordToggle,
