@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "versions": [
+    {
+      "kind": "normal",
+      "version": "1.7.9",
+      "identifier": "%NrSshot@1,7,9%",
+      "status": "known"
+    },
+    {
+      "kind": "TempSshot",
+      "version": "1.8.0",
+      "identifier": "%TempSshot@1,8,0%",
+      "status": "development",
+      "features": ["procedural custom structure generation"]
+    }
+  ]
+}
