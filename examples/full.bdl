@@ -1,9 +1,9 @@
 project "EverythingDemo"
-description "BedrockLang 1.7.9 structure generator showcase"
+description "BedrockLang %TempSshot@1,8,0% structure generation showcase"
 engine "1.21.0"
 
 event player.join {
-    player.message("Welcome to the BedrockLang 1.7.9 demo!")
+    player.message("Welcome to the BedrockLang TempSshot demo!")
     broadcast("A player joined.")
 }
 
@@ -30,10 +30,6 @@ command "bedrocklang:announce" {
     }
 }
 
-every 5 seconds {
-    log "BedrockLang scheduled task is running."
-}
-
 structure "demo_tower" {
     fill "minecraft:stone_bricks" 0 0 0 8 0 8
     box "minecraft:stone_bricks" 0 1 0 8 8 8
@@ -55,6 +51,30 @@ structure "demo_bridge" {
     pillar "minecraft:oak_log" 0 0 0 4
     pillar "minecraft:oak_log" 12 0 0 4
     line "minecraft:lantern" 2 4 1 10 4 1
+}
+
+structure_generation "demo_tower" {
+    enabled true
+    interval 6000 ticks
+    chance 0.15
+    attempts 8
+    min_distance 32
+    max_distance 128
+    dimension overworld
+}
+
+structure_generation "demo_bridge" {
+    enabled true
+    interval 12000 ticks
+    chance 0.05
+    attempts 6
+    min_distance 64
+    max_distance 192
+    dimensions overworld
+}
+
+every 5 seconds {
+    log "BedrockLang procedural structure generator is running."
 }
 
 item "demo_item" """
