@@ -20,7 +20,7 @@ export enum TokenType {
     KeywordStructureInterval, KeywordStructureAttempts, KeywordStructureMinDistance, KeywordStructureMaxDistance, KeywordStructureDimension,
     KeywordStructureOverworld, KeywordStructureNether, KeywordStructureEnd, KeywordStructureOn, KeywordStructureOff,
 
-    KeywordScore, KeywordScoreboard, KeywordObjective, KeywordTeam, KeywordTeams, KeywordAdd, KeywordRemove, KeywordReset, KeywordGetScore,
+    KeywordScore, KeywordScoreboard, KeywordObjective, KeywordTeam, KeywordTeams, KeywordAdd, KeywordReset, KeywordGetScore,
     KeywordSound, KeywordMusic, KeywordParticle, KeywordAnimation, KeywordCamera, KeywordTitle, KeywordActionbar, KeywordSubtitle, KeywordBossbar, KeywordToast,
     KeywordUi, KeywordForm, KeywordButton, KeywordLabel, KeywordInput, KeywordDropdown, KeywordSlider, KeywordToggle,
     KeywordItemDefinition, KeywordBlockDefinition, KeywordEntityDefinition, KeywordRecipe, KeywordShaped, KeywordShapeless, KeywordFurnace, KeywordSmithing, KeywordLoot, KeywordLootTable, KeywordFunctionFile, KeywordLanguage, KeywordTexture, KeywordTextures, KeywordSoundFile, KeywordScript, KeywordFile, KeywordBehavior, KeywordResource, KeywordManifest, KeywordNamespace, KeywordIdentifier,
