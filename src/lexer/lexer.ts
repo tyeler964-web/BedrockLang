@@ -24,6 +24,14 @@ const KEYWORDS: Record<string, TokenType> = {
     components: TokenType.KeywordComponents, lore: TokenType.KeywordLore, name: TokenType.KeywordName,
     block: TokenType.KeywordBlock, blocks: TokenType.KeywordBlocks, setblock: TokenType.KeywordSetBlock, fill: TokenType.KeywordFill,
     clone: TokenType.KeywordClone, structure: TokenType.KeywordStructure,
+    generate: TokenType.KeywordStructureGenerate, place: TokenType.KeywordStructurePlace, set_structure: TokenType.KeywordStructureSet,
+    fill_structure: TokenType.KeywordStructureFill, box: TokenType.KeywordStructureBox, hollow: TokenType.KeywordStructureHollow,
+    sphere: TokenType.KeywordStructureSphere, cylinder: TokenType.KeywordStructureCylinder, pillar: TokenType.KeywordStructurePillar,
+    line: TokenType.KeywordStructureLine, stairs: TokenType.KeywordStructureStairs, clear_structure: TokenType.KeywordStructureClear,
+    air: TokenType.KeywordStructureAir, relative: TokenType.KeywordStructureRelative, origin: TokenType.KeywordStructureOrigin,
+    size: TokenType.KeywordStructureSize, rotation: TokenType.KeywordStructureRotation, mirror: TokenType.KeywordStructureMirror,
+    random_block: TokenType.KeywordStructureRandom, weight: TokenType.KeywordStructureWeight, layer: TokenType.KeywordStructureLayer,
+    room: TokenType.KeywordStructureRoom, wall: TokenType.KeywordStructureWall, floor: TokenType.KeywordStructureFloor, roof: TokenType.KeywordStructureRoof,
     score: TokenType.KeywordScore, scoreboard: TokenType.KeywordScoreboard, objective: TokenType.KeywordObjective,
     team: TokenType.KeywordTeam, teams: TokenType.KeywordTeams, add: TokenType.KeywordAdd, remove: TokenType.KeywordRemove,
     reset: TokenType.KeywordReset, getscore: TokenType.KeywordGetScore,
@@ -56,7 +64,6 @@ const KEYWORDS: Record<string, TokenType> = {
 export class Lexer {
     private position = 0;
     constructor(private source: string) {}
-
     tokenize(): Token[] {
         const tokens: Token[] = [];
         while (!this.isAtEnd()) {
@@ -64,12 +71,7 @@ export class Lexer {
             if (/\s/.test(c)) continue;
             if (c === "/" && this.peek() === "/") { this.advance(); while (!this.isAtEnd() && this.peek() !== "\n") this.advance(); continue; }
             if (c === "/" && this.peek() === "*") { this.advance(); while (!this.isAtEnd() && !(this.peek() === "*" && this.peek(1) === "/")) this.advance(); if (!this.isAtEnd()) { this.advance(); this.advance(); } continue; }
-            const single: Record<string, TokenType> = {
-                "{": TokenType.LBrace, "}": TokenType.RBrace, "(": TokenType.LParen, ")": TokenType.RParen,
-                "[": TokenType.LBracket, "]": TokenType.RBracket, ",": TokenType.Comma, ":": TokenType.Colon,
-                ";": TokenType.Semicolon, ".": TokenType.Dot, "@": TokenType.At, "#": TokenType.Hash,
-                "+": TokenType.Plus, "-": TokenType.Minus, "*": TokenType.Star, "%": TokenType.Percent
-            };
+            const single: Record<string, TokenType> = { "{":TokenType.LBrace,"}":TokenType.RBrace,"(":TokenType.LParen,")":TokenType.RParen,"[":TokenType.LBracket,"]":TokenType.RBracket,",":TokenType.Comma,":":TokenType.Colon,";":TokenType.Semicolon,".":TokenType.Dot,"@":TokenType.At,"#":TokenType.Hash,"+":TokenType.Plus,"-":TokenType.Minus,"*":TokenType.Star,"%":TokenType.Percent };
             if (single[c] !== undefined) { tokens.push(this.token(single[c], c)); continue; }
             if (c === "/") { tokens.push(this.token(TokenType.Slash, c)); continue; }
             if (c === "!") { tokens.push(this.token(this.match("=") ? TokenType.NotEqual : TokenType.Bang, this.previousText("!"))); continue; }
@@ -83,40 +85,15 @@ export class Lexer {
             if (/[A-Za-z_]/.test(c)) { tokens.push(this.readIdentifier(c)); continue; }
             throw new Error(`Unexpected character '${c}' at position ${this.position - 1}`);
         }
-        tokens.push({ type: TokenType.EOF, value: "" });
-        return tokens;
+        tokens.push({ type: TokenType.EOF, value: "" }); return tokens;
     }
-
-    private readString(): Token {
-        let value = "";
-        while (!this.isAtEnd() && this.peek() !== '"') {
-            const c = this.advance();
-            if (c === "\\" && !this.isAtEnd()) {
-                const n = this.advance(); value += n === "n" ? "\n" : n === "r" ? "\r" : n === "t" ? "\t" : n;
-            } else value += c;
-        }
-        if (this.isAtEnd()) throw new Error("Unterminated string.");
-        this.advance(); return { type: TokenType.String, value };
-    }
-
-    private readNumber(first: string): Token {
-        let value = first;
-        while (!this.isAtEnd() && /[0-9]/.test(this.peek())) value += this.advance();
-        if (this.peek() === "." && /[0-9]/.test(this.peek(1))) { value += this.advance(); while (!this.isAtEnd() && /[0-9]/.test(this.peek())) value += this.advance(); }
-        return { type: TokenType.Number, value };
-    }
-
-    private readIdentifier(first: string): Token {
-        let value = first;
-        while (!this.isAtEnd() && /[A-Za-z0-9_]/.test(this.peek())) value += this.advance();
-        if (value === "true" || value === "false") return { type: TokenType.Boolean, value };
-        return { type: KEYWORDS[value] ?? TokenType.Identifier, value };
-    }
-
-    private match(expected: string): boolean { if (this.peek() !== expected) return false; this.advance(); return true; }
-    private peek(offset = 0): string { return this.source[this.position + offset] ?? "\0"; }
-    private previousText(first: string): string { return first + (this.source[this.position - 1] === "=" ? "=" : ""); }
-    private advance(): string { const c = this.source[this.position]; if (c === undefined) throw new Error("Unexpected end of source."); this.position++; return c; }
-    private isAtEnd(): boolean { return this.position >= this.source.length; }
-    private token(type: TokenType, value: string): Token { return { type, value }; }
+    private readString(): Token { let value=""; while(!this.isAtEnd()&&this.peek()!=='"'){const c=this.advance();if(c==="\\"&&!this.isAtEnd()){const n=this.advance();value+=n==="n"?"\n":n==="r"?"\r":n==="t"?"\t":n;}else value+=c;}if(this.isAtEnd())throw new Error("Unterminated string.");this.advance();return{type:TokenType.String,value}; }
+    private readNumber(first:string):Token{let value=first;while(!this.isAtEnd()&&/[0-9]/.test(this.peek()))value+=this.advance();if(this.peek()==="."&&/[0-9]/.test(this.peek(1))){value+=this.advance();while(!this.isAtEnd()&&/[0-9]/.test(this.peek()))value+=this.advance();}return{type:TokenType.Number,value};}
+    private readIdentifier(first:string):Token{let value=first;while(!this.isAtEnd()&&/[A-Za-z0-9_]/.test(this.peek()))value+=this.advance();if(value==="true"||value==="false")return{type:TokenType.Boolean,value};return{type:KEYWORDS[value]??TokenType.Identifier,value};}
+    private match(expected:string):boolean{if(this.peek()!==expected)return false;this.advance();return true;}
+    private peek(offset=0):string{return this.source[this.position+offset]??"\0";}
+    private previousText(first:string):string{return first+(this.source[this.position-1]==="="?"=":"");}
+    private advance():string{const c=this.source[this.position];if(c===undefined)throw new Error("Unexpected end of source.");this.position++;return c;}
+    private isAtEnd():boolean{return this.position>=this.source.length;}
+    private token(type:TokenType,value:string):Token{return{type,value};}
 }
