@@ -1,6 +1,6 @@
 project "TsunaEconomy"
-description "Tsuna Economy for Minecraft Bedrock 26.52"
-engine "26.52"
+description "Tsuna Economy for Minecraft Bedrock 26.51"
+engine "26.51"
 
 economy {
     currency money "$" default 1000
