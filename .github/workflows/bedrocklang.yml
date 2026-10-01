@@ -16,4 +16,4 @@ jobs:
       - run: npm install
       - run: npm run check
       - run: npm run build:addon
-      - run: test -f build/EverythingDemo.mcaddon
+      - run: test -f build/TsunaEconomy.mcaddon
