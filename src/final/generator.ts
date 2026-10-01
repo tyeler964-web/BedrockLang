@@ -6,10 +6,13 @@ import { FinalProject, StructureDef, StructureOperation, StructureSpawnDef } fro
 
 export interface BuildResult { root:string; behaviorPack:string; resourcePack:string; mcaddon:string; }
 
-const ADDON_VERSION:[number,number,number]=[1,0,0];
-const BEDROCK_ENGINE:[number,number,number]=[1,26,52];
-const SCRIPT_API="2.10.0";
-const VERSION_ID="BedrockLang-26.52";
+// Keep generated packs compatible with the 1.26.x / 26.51-era Bedrock server.
+// @minecraft/server 2.9.0 is the stable API released for 1.26.40 and remains
+// suitable for later 1.26.x releases.
+const ADDON_VERSION:[number,number,number]=[1,0,1];
+const DEFAULT_BEDROCK_ENGINE:[number,number,number]=[1,26,50];
+const SCRIPT_API="2.9.0";
+const VERSION_ID="BedrockLang-26.51";
 
 export function generate(project:FinalProject,out="build"):BuildResult{
   const root=resolve(out,project.name);
@@ -18,10 +21,11 @@ export function generate(project:FinalProject,out="build"):BuildResult{
   const rp=resolve(root,"resource_packs",project.name+"_RP");
   mkdirSync(bp,{recursive:true}); mkdirSync(rp,{recursive:true});
   const bpUuid=randomUUID(), rpUuid=randomUUID();
+  const engine=project.minEngineVersion?.length===3 ? project.minEngineVersion : DEFAULT_BEDROCK_ENGINE;
 
   writeJson(resolve(bp,"manifest.json"),{
     format_version:2,
-    header:{name:project.name+" Behavior Pack",description:project.description,uuid:bpUuid,version:ADDON_VERSION,min_engine_version:BEDROCK_ENGINE},
+    header:{name:project.name+" Behavior Pack",description:project.description,uuid:bpUuid,version:ADDON_VERSION,min_engine_version:engine},
     modules:[
       {type:"data",uuid:randomUUID(),version:ADDON_VERSION},
       {type:"script",language:"javascript",uuid:randomUUID(),version:ADDON_VERSION,entry:"scripts/main.js"}
@@ -30,7 +34,7 @@ export function generate(project:FinalProject,out="build"):BuildResult{
   });
   writeJson(resolve(rp,"manifest.json"),{
     format_version:2,
-    header:{name:project.name+" Resource Pack",description:project.description,uuid:rpUuid,version:ADDON_VERSION,min_engine_version:BEDROCK_ENGINE},
+    header:{name:project.name+" Resource Pack",description:project.description,uuid:rpUuid,version:ADDON_VERSION,min_engine_version:engine},
     modules:[{type:"resources",uuid:randomUUID(),version:ADDON_VERSION}]
   });
 
@@ -86,58 +90,104 @@ function setShards(player,v){ player.setDynamicProperty(SHARDS,Math.max(0,Math.f
 function format(v){ return Math.floor(v).toLocaleString(); }
 
 function ensureObjectives(){
-  moneyObjective=world.scoreboard.getObjective(MONEY_OBJECTIVE) ?? world.scoreboard.addObjective(MONEY_OBJECTIVE,"Money");
-  shardsObjective=world.scoreboard.getObjective(SHARDS_OBJECTIVE) ?? world.scoreboard.addObjective(SHARDS_OBJECTIVE,"Shards");
-  if(${e.scoreboard}){
-    try{ world.scoreboard.setObjectiveAtDisplaySlot(DisplaySlotId.Sidebar,{objective:moneyObjective,sortOrder:ObjectiveSortOrder.Descending}); }catch(_){ }
+  try {
+    moneyObjective=world.scoreboard.getObjective(MONEY_OBJECTIVE) ?? world.scoreboard.addObjective(MONEY_OBJECTIVE,"Money");
+    shardsObjective=world.scoreboard.getObjective(SHARDS_OBJECTIVE) ?? world.scoreboard.addObjective(SHARDS_OBJECTIVE,"Shards");
+    if(${e.scoreboard} && moneyObjective){
+      try{ world.scoreboard.setObjectiveAtDisplaySlot(DisplaySlotId.Sidebar,{objective:moneyObjective,sortOrder:ObjectiveSortOrder.Descending}); }catch(_){}
+    }
+  } catch(error) {
+    console.warn("TsunaEconomy scoreboard unavailable: "+error);
   }
 }
 
 function update(player){
-  if(player.getDynamicProperty(MONEY)===undefined) setMoney(player,START_MONEY);
-  if(player.getDynamicProperty(SHARDS)===undefined) setShards(player,START_SHARDS);
-  try{
+  try {
+    if(player.getDynamicProperty(MONEY)===undefined) setMoney(player,START_MONEY);
+    if(player.getDynamicProperty(SHARDS)===undefined) setShards(player,START_SHARDS);
+  } catch(error) {
+    console.warn("TsunaEconomy data error for "+player.name+": "+error);
+  }
+
+  try {
     ensureObjectives();
-    if(player.scoreboardIdentity){
-      moneyObjective.setScore(player.scoreboardIdentity,Math.floor(getMoney(player)));
-      shardsObjective.setScore(player.scoreboardIdentity,Math.floor(getShards(player)));
-    }
-  }catch(error){ console.warn("TsunaEconomy scoreboard: "+error); }
-  player.onScreenDisplay.setActionBar(${title}+" + "  |  Money: $" + format(getMoney(player)) + "  |  Shards: ✦" + format(getShards(player)));
+    if(player.scoreboardIdentity && moneyObjective) moneyObjective.setScore(player.scoreboardIdentity,Math.floor(getMoney(player)));
+    if(player.scoreboardIdentity && shardsObjective) shardsObjective.setScore(player.scoreboardIdentity,Math.floor(getShards(player)));
+  } catch(error) {
+    console.warn("TsunaEconomy scoreboard update: "+error);
+  }
+
+  try {
+    player.onScreenDisplay.setActionBar(${title}+"  |  Money: $" + format(getMoney(player)) + "  |  Shards: ✦" + format(getShards(player)));
+  } catch(error) {
+    console.warn("TsunaEconomy HUD error: "+error);
+  }
 }
 
-world.afterEvents.playerSpawn.subscribe(event=>{ if(event.initialSpawn) system.run(()=>update(event.player)); });
-system.runInterval(()=>{ for(const player of world.getAllPlayers()) update(player); },20);
+world.afterEvents.playerSpawn.subscribe(event=>{
+  system.run(()=>update(event.player));
+});
+
+system.runInterval(()=>{
+  for(const player of world.getAllPlayers()) update(player);
+},20);
 
 system.beforeEvents.startup.subscribe(init=>{
   const registry=init.customCommandRegistry;
-  registry.registerCommand({name:"tsuna:money",description:"View your money",permissionLevel:CommandPermissionLevel.Any,cheatsRequired:false},origin=>{
+
+  registry.registerCommand({
+    name:"tsuna:money",
+    description:"View your money",
+    permissionLevel:CommandPermissionLevel.Any,
+    cheatsRequired:false
+  },origin=>{
     const player=origin.sourceEntity;
     if(!player || player.typeId!=="minecraft:player") return {status:CustomCommandStatus.Failure,message:"Player only."};
     system.run(()=>player.sendMessage("§aMoney: §f$"+format(getMoney(player))));
     return {status:CustomCommandStatus.Success};
   });
-  registry.registerCommand({name:"tsuna:balance",description:"View your money and shards",permissionLevel:CommandPermissionLevel.Any,cheatsRequired:false},origin=>{
+
+  registry.registerCommand({
+    name:"tsuna:balance",
+    description:"View your money and shards",
+    permissionLevel:CommandPermissionLevel.Any,
+    cheatsRequired:false
+  },origin=>{
     const player=origin.sourceEntity;
     if(!player || player.typeId!=="minecraft:player") return {status:CustomCommandStatus.Failure,message:"Player only."};
     system.run(()=>player.sendMessage("§aMoney: §f$"+format(getMoney(player))+" §7| §dShards: §f✦"+format(getShards(player))));
     return {status:CustomCommandStatus.Success};
   });
-  registry.registerCommand({name:"tsuna:pay",description:"Pay another player",permissionLevel:CommandPermissionLevel.Any,cheatsRequired:false,mandatoryParameters:[{type:CustomCommandParamType.PlayerSelector,name:"target"},{type:CustomCommandParamType.Integer,name:"amount"}]},(origin,args)=>{
+
+  registry.registerCommand({
+    name:"tsuna:pay",
+    description:"Pay another player",
+    permissionLevel:CommandPermissionLevel.Any,
+    cheatsRequired:false,
+    mandatoryParameters:[
+      {type:CustomCommandParamType.PlayerSelector,name:"target"},
+      {type:CustomCommandParamType.Integer,name:"amount"}
+    ]
+  },(origin,args)=>{
     const player=origin.sourceEntity;
     if(!player || player.typeId!=="minecraft:player") return {status:CustomCommandStatus.Failure,message:"Player only."};
     const target=Array.isArray(args?.[0]) ? args[0][0] : undefined;
     const amount=Math.floor(Number(args?.[1]));
+
     system.run(()=>{
       if(!target || target.typeId!=="minecraft:player"){ player.sendMessage("§cPlayer not found."); return; }
       if(!Number.isFinite(amount) || amount<=0){ player.sendMessage("§cAmount must be greater than 0."); return; }
       if(target.id===player.id){ player.sendMessage("§cYou cannot pay yourself."); return; }
       if(getMoney(player)<amount){ player.sendMessage("§cYou do not have enough money."); return; }
-      setMoney(player,getMoney(player)-amount); setMoney(target,getMoney(target)+amount);
-      update(player); update(target);
+
+      setMoney(player,getMoney(player)-amount);
+      setMoney(target,getMoney(target)+amount);
+      update(player);
+      update(target);
       player.sendMessage("§aPaid §f$"+format(amount)+" §ato §f"+target.name+"§a.");
       target.sendMessage("§aReceived §f$"+format(amount)+" §afrom §f"+player.name+"§a.");
     });
+
     return {status:CustomCommandStatus.Success};
   });
 });
@@ -168,7 +218,7 @@ function commandBody(x:string){
 }
 function generateSchedules(p:FinalProject):string{return p.schedules.map(s=>{const ticks=s.every*(s.unit==="ticks"?1:s.unit==="seconds"?20:1200);return `system.runInterval(()=>{\n${s.body.map(x=>"  "+commandBody(x)).join("\n")}\n},${ticks});`;}).join("\n\n");}
 function generateStructureSpawns(p:FinalProject):string{return p.structureSpawns.filter(x=>x.enabled).map(generateStructureSpawn).join("\n\n");}
-function generateStructureSpawn(s:StructureSpawnDef){const dims=JSON.stringify(s.dimensions),safe=s.structure.replace(/[^A-Za-z0-9_./-]/g,"_").replace(/^\/+/,"");return `system.runInterval(()=>{\n  if(Math.random()>${s.chance})return;\n  const dimensions=${dims};\n  const dimensionId=dimensions[Math.floor(Math.random()*dimensions.length)];\n  const dimension=world.getDimension(dimensionId);\n  const players=world.getAllPlayers().filter(p=>p.dimension.id===dimensionId);\n  if(!players.length)return;\n  const player=players[Math.floor(Math.random()*players.length)];\n  const angle=Math.random()*Math.PI*2;\n  const distance=${s.minDistance}+Math.random()*(${s.maxDistance}-${s.minDistance});\n  const x=Math.floor(player.location.x+Math.cos(angle)*distance);\n  const z=Math.floor(player.location.z+Math.sin(angle)*distance);\n  const y=Math.floor(player.location.y);\n  try{dimension.runCommand("execute positioned "+x+" "+y+" "+z+" run function structures/${safe}");}catch(_){}\n},${s.intervalTicks});`}
+function generateStructureSpawn(s:StructureSpawnDef){const dims=JSON.stringify(s.dimensions),safe=s.structure.replace(/[^A-Za-z0-9_./-]/g,"_").replace(/^\/+/, "");return `system.runInterval(()=>{\n  if(Math.random()>${s.chance})return;\n  const dimensions=${dims};\n  const dimensionId=dimensions[Math.floor(Math.random()*dimensions.length)];\n  const dimension=world.getDimension(dimensionId);\n  const players=world.getAllPlayers().filter(p=>p.dimension.id===dimensionId);\n  if(!players.length)return;\n  const player=players[Math.floor(Math.random()*players.length)];\n  const angle=Math.random()*Math.PI*2;\n  const distance=${s.minDistance}+Math.random()* (${s.maxDistance}-${s.minDistance});\n  const x=Math.floor(player.location.x+Math.cos(angle)*distance);\n  const z=Math.floor(player.location.z+Math.sin(angle)*distance);\n  const y=Math.floor(player.location.y);\n  try{dimension.runCommand("execute positioned "+x+" "+y+" "+z+" run function structures/${safe}");}catch(_){}\n},${s.intervalTicks});`;}
 function generateStructure(s:StructureDef){return ["# Generated by BedrockLang "+VERSION_ID,...s.operations.flatMap(operationCommands)].join("\n")+"\n";}
 function operationCommands(op:StructureOperation):string[]{switch(op.kind){case"set":return[`setblock ~${n(op.x)} ~${n(op.y)} ~${n(op.z)} ${op.block}`];case"fill":return[`fill ~${n(op.x1)} ~${n(op.y1)} ~${n(op.z1)} ~${n(op.x2)} ~${n(op.y2)} ~${n(op.z2)} ${op.block}${op.mode?" "+op.mode:""}`];case"clear":return[`fill ~${n(op.x1)} ~${n(op.y1)} ~${n(op.z1)} ~${n(op.x2)} ~${n(op.y2)} ~${n(op.z2)} air`];case"box":return[`fill ~${n(op.x1)} ~${n(op.y1)} ~${n(op.z1)} ~${n(op.x2)} ~${n(op.y1)} ~${n(op.z2)} ${op.block}`,`fill ~${n(op.x1)} ~${n(op.y2)} ~${n(op.z1)} ~${n(op.x2)} ~${n(op.y2)} ~${n(op.z2)} ${op.block}`];case"hollow":return[`fill ~${n(op.x1)} ~${n(op.y1)} ~${n(op.z1)} ~${n(op.x2)} ~${n(op.y2)} ~${n(op.z2)} ${op.block}`,`fill ~${n(op.x1+1)} ~${n(op.y1+1)} ~${n(op.z1+1)} ~${n(op.x2-1)} ~${n(op.y2-1)} ~${n(op.z2-1)} ${op.inner??"minecraft:air"}`];case"pillar":return[`fill ~${n(op.x)} ~${n(op.y1)} ~${n(op.z)} ~${n(op.x)} ~${n(op.y2)} ~${n(op.z)} ${op.block}`];case"line":return lineCommands(op);case"sphere":return sphereCommands(op);case"cylinder":return cylinderCommands(op);case"stairs":return stairsCommands(op);}}
 function lineCommands(op:Extract<StructureOperation,{kind:"line"}>){const out:string[]=[];const steps=Math.max(Math.abs(op.x2-op.x1),Math.abs(op.y2-op.y1),Math.abs(op.z2-op.z1));for(let i=0;i<=steps;i++){const t=steps?i/steps:0;out.push(`setblock ~${n(Math.round(op.x1+(op.x2-op.x1)*t))} ~${n(Math.round(op.y1+(op.y2-op.y1)*t))} ~${n(Math.round(op.z1+(op.z2-op.z1)*t))} ${op.block}`);}return out;}
@@ -176,7 +226,7 @@ function sphereCommands(op:Extract<StructureOperation,{kind:"sphere"}>){const ou
 function cylinderCommands(op:Extract<StructureOperation,{kind:"cylinder"}>){const out:string[]=[];for(let y=0;y<op.height;y++)for(let z=-op.radius;z<=op.radius;z++){const dx=Math.floor(Math.sqrt(Math.max(0,op.radius*op.radius-z*z)));out.push(`fill ~${n(op.x-dx)} ~${n(op.y+y)} ~${n(op.z+z)} ~${n(op.x+dx)} ~${n(op.y+y)} ~${n(op.z+z)} ${op.block}`);}return out;}
 function stairsCommands(op:Extract<StructureOperation,{kind:"stairs"}>){const out:string[]=[];for(let i=0;i<op.length;i++){let x=op.x,z=op.z;if(op.direction==="north")z-=i;else if(op.direction==="south")z+=i;else if(op.direction==="east")x+=i;else x-=i;out.push(`setblock ~${n(x)} ~${n(op.y+i)} ~${n(z)} ${op.block}`);}return out;}
 function n(v:number){return v>=0?`+${v}`:String(v);}
-function safeName(v:string){return v.replace(/[^A-Za-z0-9_./-]/g,"_").replace(/^\/+/,"");}
+function safeName(v:string){return v.replace(/[^A-Za-z0-9_./-]/g,"_").replace(/^\/+/, "");}
 function writeFile(root:string,path:string,content:string){const full=resolve(root,path);mkdirSync(resolve(full,".."),{recursive:true});writeFileSync(full,content,"utf8");}
 function writeJson(path:string,value:unknown){mkdirSync(resolve(path,".."),{recursive:true});writeFileSync(path,JSON.stringify(value,null,2)+"\n","utf8");}
 function createMcaddon(path:string,packs:[string,string][]):void{const tmp=resolve(path+".tmp");rmSync(tmp,{recursive:true,force:true});mkdirSync(tmp,{recursive:true});for(const [name,src] of packs){const dir=resolve(tmp,name+".dir");mkdirSync(dir,{recursive:true});execFileSync("cp",["-R",resolve(src)+"/.",dir]);execFileSync("zip",["-qr",resolve(tmp,name),"."],{cwd:dir});rmSync(dir,{recursive:true,force:true});}execFileSync("zip",["-qr",resolve(path),"."],{cwd:tmp});rmSync(tmp,{recursive:true,force:true});}
